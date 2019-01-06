@@ -16,7 +16,7 @@ What should be done in the near future (NOT YET IMPLEMENTED):
 
 #### Attiny board preparation.
 
-** !! IMPORTANT !!** Reset pin fuse should be disabled. Please keep in mind that this will disable ISP programming. Default value of fuses could be restored using AVR HV programmer only.
+**!! IMPORTANT !!** Reset pin fuse should be disabled. Please keep in mind that this will disable ISP programming. Default value of fuses could be restored using AVR HV programmer only.
 
 Demo board has a micronucleus bootloader preinstalled. It is sufficient to upgrade firmware in the atiny. No other modifications were made.
 
