@@ -28,6 +28,7 @@
 #include <rfid/T5557Encoder.hpp>
 
 #include <rfid/impl/ManchesterDecoder.hpp>
+#include <rfid/impl/BiphaseDecoder.hpp>
 
 #include "common/Log.hpp"
 
@@ -116,6 +117,10 @@ static void _showHelp(const char *progName, const char *errorMessage) {
 			Log::reportStdOut("  -%c --%s\n", i.val, i.name);
 		}
 	}
+
+	Log::reportStdOut("\nWhere:\n");
+	Log::reportStdOut("  - bitrate: 16, 32, 64\n");
+	Log::reportStdOut("  - modulation: 'manchester', 'biphase'\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -233,9 +238,12 @@ int main(int argc, char *argv[]) {
 
 				rfid::CarrierDecoder    carrierDecoder;
 				rfid::ManchesterDecoder manchesterDecoder(&carrierDecoder);
-				rfid::Em4100Decoder     em4100Decoder(&manchesterDecoder);
+				rfid::BiphaseDecoder    biphaseDecoder(&carrierDecoder);
+				rfid::Em4100Decoder     em4100DecoderM(&manchesterDecoder);
+				rfid::Em4100Decoder     em4100DecoderB(&biphaseDecoder);
 
-				em4100Decoder.addListener(new Em4100DecoderListener());
+				em4100DecoderM.addListener(new Em4100DecoderListener());
+				em4100DecoderB.addListener(new Em4100DecoderListener());
 				
 				carrierDecoder.checkPulses(*samples.get());
 

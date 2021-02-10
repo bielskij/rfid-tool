@@ -23,6 +23,7 @@ SRCS := \
 	src/rfid/T5557Encoder.cpp \
 	\
 	src/rfid/impl/ManchesterDecoder.cpp \
+	src/rfid/impl/BiphaseDecoder.cpp \
 	src/rfid/impl/InterfaceUsbImpl.cpp \
 	\
 	src/main.cpp
