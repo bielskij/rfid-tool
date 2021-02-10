@@ -38,6 +38,7 @@ enum Modulation {
 	MODULATION_UNKNOWN,
 
 	MODULATION_MANCHESTER,
+	MODULATION_BIPHASE
 };
 
 enum Bitrate {
@@ -161,6 +162,9 @@ int main(int argc, char *argv[]) {
 				case 'm':
 					if (strcmp(optarg, "manchester") == 0) {
 						options.modulation = MODULATION_MANCHESTER;
+
+					} else if (strcmp(optarg, "biphase") == 0) {
+						options.modulation = MODULATION_BIPHASE;
 					}
 					break;
 
@@ -254,6 +258,7 @@ int main(int argc, char *argv[]) {
 
 					switch (options.modulation) {
 						case MODULATION_MANCHESTER: params.modulation = rfid::T5557Encoder::MODULATION_MANCHESTER; break;
+						case MODULATION_BIPHASE:    params.modulation = rfid::T5557Encoder::MODULATION_BIPHASE;    break;
 
 						default:
 							break;
