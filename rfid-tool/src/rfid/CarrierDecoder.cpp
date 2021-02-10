@@ -23,8 +23,8 @@
 #define PULSE_MAX      50
 #define ERROR_TRESHOLD 10 // 20%
 
-#define PULSE_SHORT(__dec, __pulse) ((__pulse > __dec->shortMin) && (__pulse < __dec->shortMax))
-#define PULSE_LONG(__dec, __pulse) ((__pulse > __dec->longMin) && (__pulse < __dec->longMax))
+#define PULSE_SHORT(__dec, __pulse) ((__pulse >= __dec->shortMin) && (__pulse <= __dec->shortMax))
+#define PULSE_LONG(__dec, __pulse) ((__pulse >= __dec->longMin) && (__pulse <= __dec->longMax))
 
 
 void rfid::CarrierDecoder::updatePulseRange() {
@@ -117,6 +117,10 @@ void rfid::CarrierDecoder::checkPulses(const std::vector<rfid::device::Interface
 					this->hiCount++;
 
 				} else {
+					//common::Log::debug("Out of sync, bad pulse: %uus, (short %uus - %uus, long %uus - %uus)",
+					//	sample.getLengthUs(), this->shortMin, this->shortMax, this->longMin, this->longMax
+					//);
+
 					this->errorCount++;
 				}
 
@@ -149,6 +153,10 @@ void rfid::CarrierDecoder::checkPulses(const std::vector<rfid::device::Interface
 					this->notify(EVENT_NEW_PULSE, &data);
 
 				} else {
+					//common::Log::debug("In sync, bad pulse: %uus, (short %uus - %uus, long %uus - %uus)",
+					//	sample.getLengthUs(), this->shortMin, this->shortMax, this->longMin, this->longMax
+					//);
+
 					this->errorCount++;
 				}
 			}
