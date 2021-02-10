@@ -1,26 +1,29 @@
-It is a small project that includes 125kHz RFID token reader and programmer over USB interface.
+An universal USB 125kHz token reader and programmer.
 
-The project uses a attiny85 small test board simillar to adafruit one and a simple custom shield. The shield is not required, whole circuit could be made on a breadbord, but in case of breadboard it could be more sensitive to noise and glitches.
+It uses a small Chinese attiny85 based board (adadfruit clone) and a simple custom shiled containing analog demodulator circuit. The shield is not required, whole circuit could be 
+assembled on breadboard, but keep in mind that this solution is much more sensitive to noise and glitches.
 
 ![Alt text](doc/rfid-reader.jpg)
 
+Current software supports:
+ - reading EM4100 RFID tokens
+    - 16, 32, 64 carrier divider (auto detection)
+    - Manchaster, Biphase data encoding
+ - programming T5557 based RFID tokens
 Current software allows to:
-- reading EM4100 tokens (16, 32, 64 carrier divider, Manchester encoding)
-- writing T5557 tokens
 
-What should be done in the near future (NOT YET IMPLEMENTED):
-- support for biphase encoding,
+The following features are scheduled for future development:
 - support for PSK encoding,
 - password protection and locking (T5557),
 - one-shot command to clone a token.
 
 #### Attiny board preparation.
 
-**!! IMPORTANT !!** Reset pin fuse should be disabled. Please keep in mind that this will disable ISP programming. Default value of fuses could be restored using AVR HV programmer only.
+**!! IMPORTANT !!** Reset pin fuse should be disabled. Please keep in mind that it will disable ISP programming permanently, HV programmer is require to restore default setting.
 
-Demo board has a micronucleus bootloader preinstalled. It is sufficient to upgrade firmware in the atiny. No other modifications were made.
+The chinese PCB has a micronucleus bootloader preinstalled. It is sufficient to upgrade firmware in the attiny trough USB. No other modifications are required. The project has no micronucleus commandline utility included. Manual installation from package repository or source code is required [(link)](https://github.com/micronucleus/micronucleus).
 
-My project has no micronucleus utility included, also it is required to install it manually on OS.
+The following command will compile and burn firmware in attiny:
 
 ```console
 # cd firmware
@@ -29,7 +32,7 @@ My project has no micronucleus utility included, also it is required to install 
 
 #### Host software compilation.
 
-Host software depends on libusb library. It was tested on a linux system only.
+Host software depends on libusb library. It was tested on a linux system (Ubuntu) only.
 
 ```console
 # cd rfid-tool
