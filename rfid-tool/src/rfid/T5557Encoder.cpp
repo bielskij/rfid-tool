@@ -147,7 +147,7 @@ void rfid::T5557Encoder::encodeParameters(const Parameters &params, bool passwor
 			case MODULATION_FSK1a:      modulationValue =  6; break;
 			case MODULATION_FSK2a:      modulationValue =  7; break;
 			case MODULATION_MANCHESTER: modulationValue =  8; break;
-			case MODULATION_BIPHASE:    modulationValue = 16; break;
+			case MODULATION_BIPHASE:    modulationValue = 24; break; // Biphase '57
 		}
 
 		bitOffset += common::DataUtils::putBitsMsb(&data, bitOffset, modulationValue, 5);
