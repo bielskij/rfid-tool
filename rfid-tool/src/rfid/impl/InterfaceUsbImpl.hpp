@@ -38,7 +38,7 @@ namespace rfid {
 				virtual bool isConnected();
 				virtual void reset();
 				virtual std::shared_ptr<FirmwareVersion> getVersion();
-//				virtual void coilEnable(bool enable);
+				virtual void transfer(bool enable);
 				std::shared_ptr<std::vector<Sample>> getSamples();
 				virtual void putSamples(const std::vector<Sample> &samples);
 

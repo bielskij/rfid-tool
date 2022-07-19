@@ -38,7 +38,11 @@ class UsbFirmwareVersion : public rfid::device::Interface::FirmwareVersion {
 		}
 
 		bool isSupported() {
-			return this->getMajor() == 0 && this->getMinor() == 1;
+			return this->getMajor() == 0 &&
+			(
+				this->getMinor() == 1 ||
+				this->getMinor() == 2
+			);
 		}
 };
 
@@ -176,7 +180,7 @@ void rfid::device::InterfaceUsbImpl::doTransferRx(uint8_t *buffer, uint16_t buff
 void rfid::device::InterfaceUsbImpl::doTransferTx(uint8_t *buffer, uint16_t bufferSize, uint16_t index, uint16_t value, uint8_t command) {
 	this->checkConnection();
 
-	this->checkResponse(nullptr, bufferSize,
+	this->checkResponse(buffer, bufferSize,
 		usb_control_msg(
 			this->handle,
 			USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_OUT,
@@ -307,66 +311,66 @@ std::shared_ptr<rfid::device::Interface::FirmwareVersion> rfid::device::Interfac
 std::shared_ptr<std::vector<rfid::device::Interface::Sample>> rfid::device::InterfaceUsbImpl::getSamples() {
 	std::shared_ptr<std::vector<Sample>> ret(new std::vector<Sample>);
 
-	const uint16_t prescaler = 8;
-
-	{
-		uint8_t transferId;
-
-		uint8_t response[3];
-
-		// Start sampler
-		this->doTransferRx(
-			response,
-			1,
-			PROTO_TRANSFER_FLAG_FIRST_ON_START | PROTO_TRANSFER_FLAG_START_ON_EDGE | PROTO_TRANSFER_FLAG_FALLING_EDGE | prescaler, // prescaler
-			60000,
-			PROTO_CMD_TRANSFER_START,
-			true
-		);
-
-		transferId = response[0];
-
-		Log::debug("Transfer id: %u", transferId);
-
-		usleep(500 * 1000);
-
-		// Check status
-		this->doTransferRx(response, 3, transferId, 0, PROTO_CMD_TRANSFER_STATUS, true);
-
-		Log::debug("status: %u, samplesCount: %u", response[0], (response[1] << 8) | response[2]);
-
-		if (response[0] != PROTO_TRANSFER_STATUS_OK) {
-			throw InvalidStateException();
-		}
-	}
-
-	// Read samples
-	{
-		uint8_t samplesBuffer[this->sampleVectorSize];
-
-		this->doTransferRx(samplesBuffer, this->sampleVectorSize, 0, 0, PROTO_CMD_PULSE_VECTOR_READ, false);
-
-		int currentState       = -1;
-		int currentStateLength = 0;
-
-		for (int i = 0; i < this->sampleVectorSize; i++) {
-			for (int j = 0; j < 8; j++) {
-				int lastState = currentState;
-
-				currentState = (samplesBuffer[i] & (1 << j)) != 0;
-				if (currentState != lastState) {
-					if (lastState != -1) {
-						ret->push_back(Sample(currentStateLength * CARRIER_US * prescaler, ! lastState));
-
-						currentStateLength = 1;
-					}
-
-				} else {
-					currentStateLength++;
-				}
-			}
-		}
-	}
+//	const uint16_t prescaler = 8;
+//
+//	{
+//		uint8_t transferId;
+//
+//		uint8_t response[3];
+//
+//		// Start sampler
+//		this->doTransferRx(
+//			response,
+//			1,
+//			PROTO_TRANSFER_FLAG_FIRST_ON_START | PROTO_TRANSFER_FLAG_START_ON_EDGE | PROTO_TRANSFER_FLAG_FALLING_EDGE | prescaler, // prescaler
+//			60000,
+//			PROTO_CMD_TRANSFER_START,
+//			true
+//		);
+//
+//		transferId = response[0];
+//
+//		Log::debug("Transfer id: %u", transferId);
+//
+//		usleep(500 * 1000);
+//
+//		// Check status
+//		this->doTransferRx(response, 3, transferId, 0, PROTO_CMD_TRANSFER_STATUS, true);
+//
+//		Log::debug("status: %u, samplesCount: %u", response[0], (response[1] << 8) | response[2]);
+//
+//		if (response[0] != PROTO_TRANSFER_STATUS_OK) {
+//			throw InvalidStateException();
+//		}
+//	}
+//
+//	// Read samples
+//	{
+//		uint8_t samplesBuffer[this->sampleVectorSize];
+//
+//		this->doTransferRx(samplesBuffer, this->sampleVectorSize, 0, 0, PROTO_CMD_PULSE_VECTOR_READ, false);
+//
+//		int currentState       = -1;
+//		int currentStateLength = 0;
+//
+//		for (int i = 0; i < this->sampleVectorSize; i++) {
+//			for (int j = 0; j < 8; j++) {
+//				int lastState = currentState;
+//
+//				currentState = (samplesBuffer[i] & (1 << j)) != 0;
+//				if (currentState != lastState) {
+//					if (lastState != -1) {
+//						ret->push_back(Sample(currentStateLength * CARRIER_US * prescaler, ! lastState));
+//
+//						currentStateLength = 1;
+//					}
+//
+//				} else {
+//					currentStateLength++;
+//				}
+//			}
+//		}
+//	}
 
 	return ret;
 }
@@ -454,4 +458,9 @@ void rfid::device::InterfaceUsbImpl::putSamples(const std::vector<Sample> &sampl
 			}
 		}
 	}
+}
+
+
+void rfid::device::InterfaceUsbImpl::transfer(bool enable) {
+	this->doTransferTx(nullptr, 0, 0, enable ? 1 : 0, PROTO_CMD_COIL_ENABLE);
 }

@@ -16,7 +16,7 @@
  */
 
 #define FIRMWARE_VERSION_MAJOR 0
-#define FIRMWARE_VERSION_MINOR 1
+#define FIRMWARE_VERSION_MINOR 2
 
 #include <avr/io.h>
 #include <avr/pgmspace.h>
@@ -412,11 +412,15 @@ static usbMsgLen_t usbFunctionSetup(uint8_t data[8]) {
 
 	switch (rq->bRequest) {
 		case PROTO_CMD_COIL_ENABLE:
-			if (rq->wValue.word) {
-				_coilStart();
+			{
+				if (rq->wValue.word) {
+					_coilStart();
 
-			} else {
-				_coilStop();
+				} else {
+//					_coilStop();
+				}
+
+				response[ret++] = PROTO_RC_OK;
 			}
 			break;
 
@@ -522,18 +526,18 @@ static void _init(void) {
 	// TCCR1 in synchronous mode
 	PLLCSR &= ~_BV(PCKE);
 
-	usbDeviceDisconnect();  // do this while interrupts are disabled
-	_delay_ms(300);
-	usbDeviceConnect();
-
-	usbInit();    // Initialize INT settings after reconnect
-
 	PIO_SET_INPUT(PIO_COIL_BANK, PIO_COIL_PIN);
 	PIO_SET_LOW(PIO_COIL_BANK, PIO_COIL_PIN);
 
 	_coilInit();
 	_prescallerInit();
 	_adcInit();
+
+	usbDeviceDisconnect();  // do this while interrupts are disabled
+	_delay_ms(300);
+	usbDeviceConnect();
+
+	usbInit();    // Initialize INT settings after reconnect
 }
 
 static void _calibrateOscillator(void) {
@@ -581,7 +585,6 @@ __attribute__((OS_main)) main(void) {
 
 	_init();
 
-	_coilStart();
 	do {
 		// 15 clockcycles per loop.
 		// adjust fastctr for 5ms timeout

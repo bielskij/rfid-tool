@@ -123,6 +123,21 @@ static void _showHelp(const char *progName, const char *errorMessage) {
 	Log::reportStdOut("  - modulation: 'manchester', 'biphase'\n");
 }
 
+
+static void _transfer(rfid::device::Interface *iface, bool enable) {
+	iface->transfer(enable);
+
+	if (enable) {
+		struct timespec spec;
+
+		spec.tv_sec  = 0;
+		spec.tv_nsec = 100 * 1000 * 1000;
+
+		nanosleep(&spec, nullptr);
+	}
+}
+
+
 int main(int argc, char *argv[]) {
 	int ret = 0;
 
@@ -233,6 +248,8 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 
+			_transfer(iface, true);
+
 			if (options.read) {
 				std::shared_ptr<std::vector<rfid::device::Interface::Sample>> samples = iface->getSamples();
 
@@ -292,6 +309,8 @@ int main(int argc, char *argv[]) {
 					iface->putSamples(samples);
 				}
 			}
+
+			_transfer(iface, false);
 
 		} catch (const common::Exception &ex) {
 			Log::reportStdErr(ex.getMessage() + "\n");

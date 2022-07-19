@@ -137,6 +137,8 @@ namespace rfid {
 
 				virtual std::shared_ptr<FirmwareVersion> getVersion() = 0;
 
+				virtual void transfer(bool enable) = 0;
+
 				virtual std::shared_ptr<std::vector<Sample>> getSamples() = 0;
 
 				virtual void putSamples(const std::vector<Sample> &samples) = 0;
