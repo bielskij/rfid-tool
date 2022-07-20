@@ -310,8 +310,6 @@ int main(int argc, char *argv[]) {
 				}
 			}
 
-			_transfer(iface, false);
-
 		} catch (const common::Exception &ex) {
 			Log::reportStdErr(ex.getMessage() + "\n");
 			ret = -1;
@@ -321,6 +319,8 @@ int main(int argc, char *argv[]) {
 			ret = -1;
 		}
 	} while (0);
+
+	_transfer(iface, false);
 
 	if (iface) {
 		delete iface;

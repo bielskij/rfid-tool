@@ -102,9 +102,9 @@ static volatile uint8_t ioBuffer[SAMPLE_BUFFER_SIZE];
 static volatile uint8_t ioBufferOffset = 0;
 
 // Operation (RX/TX) samples length
-static volatile uint16_t opLength;
+static volatile uint16_t opLength = 0;
 // Current offset in sample buffer regarding RX/TX operation
-static volatile uint16_t opOffset;
+static volatile uint16_t opOffset = 0;
 
 // Common context
 static volatile CommonContext _commonCtx = {
@@ -417,7 +417,7 @@ static usbMsgLen_t usbFunctionSetup(uint8_t data[8]) {
 					_coilStart();
 
 				} else {
-//					_coilStop();
+					_coilStop();
 				}
 
 				response[ret++] = PROTO_RC_OK;
@@ -585,40 +585,38 @@ __attribute__((OS_main)) main(void) {
 
 	_init();
 
+	// Based on micronucelus code
 	do {
-		// 15 clockcycles per loop.
-		// adjust fastctr for 5ms timeout
-
-		uint16_t fastctr  = (uint16_t)(F_CPU / (1000.0f * 15.0f / 5.0f));
-		uint8_t  resetctr = 100;
+		uint16_t t5msTimeoutCounter = (uint16_t) (F_CPU / (1000.0f * 15.0f / 5.0f));
+		uint8_t  tResetDownCounter  = 100;
 
 		do {
 			if ((USBIN & USBMASK) != 0) {
-				resetctr = 100;
+				tResetDownCounter = 100;
 			}
 
-			if (! --resetctr) { // reset encountered
+			if (--tResetDownCounter == 0) { // reset encountered
 				usbNewDeviceAddr = 0;   // bits from the reset handling of usbpoll()
 				usbDeviceAddr    = 0;
 
 				_calibrateOscillator();
 			}
 
-			if (USB_INTR_PENDING & (1<<USB_INTR_PENDING_BIT)) {
+			if (USB_INTR_PENDING & _BV(USB_INTR_PENDING_BIT)) {
 				USB_INTR_VECTOR();
 
-				USB_INTR_PENDING = 1<<USB_INTR_PENDING_BIT;  // Clear int pending, in case timeout occured during SYNC
+				USB_INTR_PENDING |= _BV(USB_INTR_PENDING_BIT);  // Clear int pending, in case timeout occured during SYNC
 				break;
 			}
-		} while (--fastctr);
+		} while (--t5msTimeoutCounter);
 
 		wdt_reset();
 
-		if (! fastctr) {
-			// commands are only evaluated after next USB transmission or after 5 ms passed
+		// Handle asyncs
+		{
 			switch (command) {
 				case PROTO_CMD_RESET:
-					{
+					if (t5msTimeoutCounter == 0) {
 						CLKPR = 0x80;
 						CLKPR = 0;
 						void (*ptrToFunction)(); // allocate a function pointer
@@ -670,6 +668,7 @@ __attribute__((OS_main)) main(void) {
 						_adcStart();
 						if (_commonCtx.state == STATE_WAIT_CONDITION) {
 							_prescallerStart(0, PRESCALER_MINIMAL_VALUE, 0);
+
 						} else {
 							_prescallerStart(_commonCtx.tx, _commonCtx.prescalerValue, 1);
 						}
@@ -709,7 +708,7 @@ __attribute__((OS_main)) main(void) {
 		}
 
 		// Usbpoll() collided with data packet
-		if (USB_INTR_PENDING & (1<<USB_INTR_PENDING_BIT)) {
+		if (USB_INTR_PENDING & _BV(USB_INTR_PENDING_BIT)) {
 			uint8_t ctr;
 
 			// loop takes 5 cycles
@@ -723,7 +722,7 @@ __attribute__((OS_main)) main(void) {
 			:  "M" ((uint8_t)(8.8f * (F_CPU / 1.0e6f) / 5.0f + 0.5)), "I" (_SFR_IO_ADDR(USBIN)), "M" (USB_CFG_DMINUS_BIT)
 			);
 
-			USB_INTR_PENDING = 1<<USB_INTR_PENDING_BIT;
+			USB_INTR_PENDING = _BV(USB_INTR_PENDING_BIT);
 		}
 	} while(1);
 	_coilStop();
