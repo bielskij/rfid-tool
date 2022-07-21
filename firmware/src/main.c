@@ -346,8 +346,8 @@ static void _coilStop() {
 static uchar usbFunctionRead(uchar *data, uchar len) {
 	uchar ret = 0;
 
-	volatile uint16_t srcSize = 0;
-	volatile uint8_t *src     = NULL;
+	volatile uint16_t srcSize;
+	volatile uint8_t *src;
 
 	switch (command) {
 		case PROTO_CMD_SAMPLE_VECTOR_READ:
@@ -359,6 +359,10 @@ static uchar usbFunctionRead(uchar *data, uchar len) {
 			src     = ioBuffer;
 			srcSize = SAMPLE_BUFFER_SIZE;
 			break;
+
+		default:
+			srcSize = 0;
+			src     = NULL;
 	}
 
 	if (src != NULL) {
@@ -378,8 +382,8 @@ static uchar usbFunctionRead(uchar *data, uchar len) {
 static uchar usbFunctionWrite(uchar *data, uchar len) {
 	uchar ret = 0;
 
-	volatile uint16_t dstSize = 0;
-	volatile uint8_t *dst     = NULL;
+	volatile uint16_t dstSize;
+	volatile uint8_t *dst;
 
 	switch (command) {
 		case PROTO_CMD_SAMPLE_VECTOR_WRITE:
@@ -391,14 +395,20 @@ static uchar usbFunctionWrite(uchar *data, uchar len) {
 			dst     = ioBuffer;
 			dstSize = SAMPLE_BUFFER_SIZE;
 			break;
+
+		default:
+			dst     = NULL;
+			dstSize = 0;
 	}
 
-	while (ret < len) {
-		if (ioBufferOffset == dstSize) {
-			break;
-		}
+	if (dst) {
+		while (ret < len) {
+			if (ioBufferOffset == dstSize) {
+				break;
+			}
 
-		dst[ioBufferOffset++] = data[ret++];
+			dst[ioBufferOffset++] = data[ret++];
+		}
 	}
 
 	return ret;
@@ -463,6 +473,8 @@ static usbMsgLen_t usbFunctionSetup(uint8_t data[8]) {
 				_commonCtx.state    = STATE_STARTING;
 				_commonCtx.timeout  = rq->wValue.word;
 				_commonCtx.timedOut = 0;
+
+				command = rq->bRequest;
 
 				response[ret++] = PROTO_RC_OK;
 				response[ret++] = ++_commonCtx.id;
@@ -625,17 +637,8 @@ __attribute__((OS_main)) main(void) {
 					}
 					break;
 
-				case PROTO_CMD_NOP:
-					break;
-
-				default:
-					break;
-			}
-
-			// Handle transfer state change
-			switch (_commonCtx.state) {
-				case STATE_STARTING:
-					{
+				case PROTO_CMD_TRANSFER_START:
+					if (t5msTimeoutCounter == 0) {
 						// Transfer buffer
 						opOffset = 0;
 						opLength = (uint16_t) SAMPLE_BUFFER_SIZE;
@@ -663,8 +666,6 @@ __attribute__((OS_main)) main(void) {
 							}
 						}
 
-						sei();
-
 						_adcStart();
 						if (_commonCtx.state == STATE_WAIT_CONDITION) {
 							_prescallerStart(0, PRESCALER_MINIMAL_VALUE, 0);
@@ -672,18 +673,24 @@ __attribute__((OS_main)) main(void) {
 						} else {
 							_prescallerStart(_commonCtx.tx, _commonCtx.prescalerValue, 1);
 						}
-					}
-					break;
 
-				case STATE_FINISHED:
-					{
+						sei();
+						{
+							// Wait until process finishes
+							while (_commonCtx.state != STATE_FINISHED) {}
+						}
 						cli();
 
 						_prescallerStop();
 						_adcStop();
 
 						_commonCtx.state = STATE_IDLE;
+
+						command = PROTO_CMD_NOP;
 					}
+					break;
+
+				case PROTO_CMD_NOP:
 					break;
 
 				default:
