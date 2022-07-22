@@ -148,7 +148,7 @@ void rfid::device::InterfaceUsbImpl::doTransferRx(uint8_t *buffer, uint16_t buff
 	}
 
 	if (transferSize) {
-		transferBuffer.reset(new uint8_t[transferSize]);
+		transferBuffer.reset(new uint8_t[transferSize], std::default_delete<uint8_t[]>());
 	}
 
 	this->checkResponse(transferBuffer.get(), transferSize,
@@ -208,6 +208,7 @@ rfid::device::InterfaceUsbImpl::InterfaceUsbImpl() {
 
 	this->version.reset();
 
+	usb_init();
 	usb_find_busses();
 	usb_find_devices();
 
@@ -316,7 +317,7 @@ std::shared_ptr<std::vector<rfid::device::Interface::Sample>> rfid::device::Inte
 	{
 		uint8_t transferId;
 
-		uint8_t response[3];
+		uint8_t response[3] = { 0 };
 
 		// Start sampler
 		this->doTransferRx(

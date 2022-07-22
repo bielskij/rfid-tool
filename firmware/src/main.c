@@ -49,7 +49,7 @@
 #define PIO_CLK_PIN    2
 
 #define PULSE_VECTOR_SIZE      7
-#define SAMPLE_BUFFER_SIZE   192
+#define SAMPLE_BUFFER_SIZE   140
 
 #define PRESCALER_MINIMAL_VALUE 4
 
@@ -64,7 +64,7 @@
 #define ADC_HI (uint8_t)((VOLTAGE_HIGH_MV * ADC_MAX) / ADC_REF_MV)
 #define ADC_LO (uint8_t)((VOLTAGE_LOW_MV  * ADC_MAX) / ADC_REF_MV)
 
-#define TIMER_PRESCALER_T0 (_BV(CS02) | _BV(CS01))
+#define TIMER_PRESCALER_T0 (_BV(CS02) | _BV(CS01)) // Input from T0 pin, clock on falling edge
 
 typedef enum _State {
 	STATE_IDLE,
@@ -254,9 +254,10 @@ ISR(ADC_vect) {
 
 static void _adcInit() {
 	// Initialize ADC
-	ADMUX  |= _BV(ADLAR); // Left adjusted, VCC reference voltage, ADC0 input
+	ADMUX = _BV(ADLAR); // Left adjusted, VCC reference voltage, ADC0 input
 
-	ADCSRA |= (_BV(ADPS2) | _BV(ADEN)); // Prescaller 16, enable ADC
+	// Prescaller 16, enable ADC
+	ADCSRA |= (_BV(ADPS2) | _BV(ADEN));
 
 	// Trigger from timer0 compare match A
 	ADCSRB |= (_BV(ADTS0) | _BV(ADTS1));
@@ -264,6 +265,7 @@ static void _adcInit() {
 	// Start first conversion
 	ADCSRA |= _BV(ADSC);
 
+	// Wait until first conversion is finished
 	{
 		uint8_t adcVal;
 
@@ -275,6 +277,7 @@ static void _adcInit() {
 
 
 static void _adcStart() {
+	ADCSRA |= (_BV(ADIF));
 	ADCSRA |= (_BV(ADATE) | _BV(ADIE) | _BV(ADSC));
 }
 
@@ -320,7 +323,9 @@ static void _prescallerStart(uint8_t interrupt, uint8_t prescalerValue, uint8_t 
 
 
 static void _prescallerStop() {
+	// Stop timer
 	TCCR0B &= ~TIMER_PRESCALER_T0;
+	// Disable interrupts
 	TIMSK  &= ~_BV(OCIE0A);
 }
 
